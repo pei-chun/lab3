@@ -13,7 +13,7 @@ import tf.transformations as tfm
 
 from apriltags_ros.msg import AprilTagDetectionArray
 from helper import transformPose, pubFrame, cross2d, lookupTransform, pose2poselist, invPoselist, diffrad
-
+from me212bot.msg import WheelCmdVel
 
 rospy.init_node('apriltag_navi', anonymous=True)
 lr = tf.TransformListener()
@@ -39,11 +39,11 @@ def constant_vel_loop():
     rate = rospy.Rate(100) # 100hz
     
     while not rospy.is_shutdown() :
-        ##wcv = WheelCmdVel()
-        ##wcv.desiredWV_R = ???
-        ##wcv.desiredWV_L = ???
+        wcv = WheelCmdVel()
+        wcv.desiredWV_R = 0.1
+        wcv.desiredWV_L = 0.2
         
-        ##velcmd_pub.publish(???) 
+        velcmd_pub.publish(wcv) 
         
         rate.sleep() 
 
@@ -54,11 +54,14 @@ def apriltag_callback(data):
     	detection = data.detections[0]
     	print detection.pose 
     	if detection.id == 21:   # tag id is the correct one
-		# Use the functions in helper.py to do the following 
+	    print detection	
+                # Use the functions in helper.py to do the following 
 		# step 1. convert the pose to poselist Hint: pose data => detection.pose.pose 
-		# step 2. do the matrix manipulation 
+		tf_apriltag_camera = pose2poselist(detection.pose.pose)
+                # step 2. do the matrix manipulation 
+                tf_base_map = tf_apriltag_map * np.inv (tf_camera_base * tf_apriltag_map)
 		# step 3. publish the base frame w.r.t the map frame
-    		# note: tf listener and broadcaster are initalize in line 19~20
+                # note: tf listener and broadcaster are initalize in line 19~20
 
 ## navigation control loop (No need to modify)
 def navi_loop():
@@ -71,7 +74,7 @@ def navi_loop():
     arrived = False
     arrived_position = False
     
-    while not rospy.is_shutdown() :
+    while not rospy.is_shutdown():
         # 1. get robot pose
         robot_pose3d = lookupTransform(lr, '/map', '/robot_base')
         
